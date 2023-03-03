@@ -1,0 +1,152 @@
+---
+title: "A7_Walker_Charlie"
+author: "Charlie Walker"
+date: "2023-02-28"
+output: pdf_document
+---
+
+[GitHub Repository](https://github.com/moonflwrz/BIOL432_Assignment7)
+
+### [A] Data Setup
+
+```{r data_setup}
+#loading libraries..
+library(ape)
+library(reshape2)
+library(ggplot2)
+library(ggtree)
+library(colorBlindness)
+
+#importing .nex file
+DragonNexus<-read.nexus.data(
+  "./Data/DragonMatrix.nex")
+```
+
+### [B] Add Dragons to Nexus & reformatting
+
+```{r new_friends}
+#adding my 3 dragons
+myList<-read.nexus.data(
+  "./Data/MyDragonMatrix.nex")
+
+FullDrag<-append(DragonNexus,
+                 myList,
+                 after=77)
+```
+
+### [C] Weighting
+
+```{r weights}
+
+WeightsDat<-read.csv(
+  "./Data/Weights.csv")
+
+#Single vector w weights
+Weights<-paste0(WeightsDat$Weight,
+                collapse="")
+Weights<-strsplit(Weights, 
+                  split="")[[1]]
+
+#Converting into values..
+WeightsNum<-rep(NA, length(Weights))
+for(i in 1:length(WeightsNum)){
+  if(Weights[i] %in% LETTERS){
+    WeightsNum[i]<-which(
+      LETTERS==Weights[i])+9
+  } else {
+    WeightsNum[i]<-Weights[i]
+  }
+}
+WeightsNum<-as.numeric(WeightsNum)
+
+#Applying weight
+WtFullDrag<-FullDrag
+for (i in 1:length(FullDrag)){
+  RepWeight<-FullDrag[[i]]==1
+  WtFullDrag[[i]][RepWeight]<-
+    WeightsNum[RepWeight]
+  RepWeight<-NA
+}
+```
+
+### [D] Distance Matrix
+
+```{r dist_matrix, warning=F, fig.cap="A Distance Matrix showing the genetic distance between individuals, quantified and measured by trait weight."}
+#reformatting
+WtFullDragDF<-data.frame(
+  matrix(unlist(WtFullDrag),
+         ncol=78, byrow=T))
+row.names(WtFullDragDF)<-names(
+  WtFullDrag)
+WtDragonDist<-dist(
+  WtFullDragDF, method='euclidean')
+WtDragonDistMat<-as.matrix(WtDragonDist)
+WtPDat<-melt(WtDragonDistMat)
+
+#Plotting distance matrix
+ggplot(data=WtPDat, aes(
+  x=Var1, y=Var2, fill=value)) +
+  geom_tile() +
+  scale_fill_gradientn(
+    colors=c("#785EF0", "#DC267F",
+            "#FE6100", "#FFB000")) +
+  theme(axis.text.x=element_text(
+    angle=90, hjust=1, vjust=0.5))
+```
+
+### [E] Phylogeny
+
+```{r tree_plot, fig.cap="A phylogeny representing the hypothetical evolutionary history of Dragons, categorized by physiological traits. Tree is coloured by individual's heritage."}
+
+#making the tree..
+WtDragTree<-fastme.bal(WtDragonDist)
+
+#Grabbing heritage as a coloring variable
+Country<-gsub("[0-9\\.]+([^X]+)X*",
+              "\\1", WtDragTree$tip.label)
+
+CountryGroups<-split(
+  WtDragTree$tip.label, Country)
+
+WtDTcol<-groupOTU(WtDragTree, 
+                  CountryGroups)
+
+#plotting.. 
+ggtree(WtDTcol, layout="circular",
+       aes(color=group)) +
+  geom_tiplab(size=2, aes(angle=angle)) +
+  scale_color_manual(
+    values=SteppedSequential5Steps)
+```
+
+### [F] Backstory/Data Interpretation
+
+Due to the species' sheer genetic and physiological variability, what constitutes as a Dragon is still taxonomically up to debate. Purists may claim that in order to be considered a dragon, the species must be totally reptilian- but as we'll see, that definition is not universal. Indeed, there are many organisms that are considered *Dragons* that inhabit a multitude of different ecological niches and enviroments- some which would be impossible to survive (let alone thrive) in if said organism was reptilian.
+
+#### [I] - Dilong (Chinese)
+
+![A drawn image of a Chinese dragon. The dragon is dark green in color, with a red mane and green-yellow antlers (Art: Me). ](Data/dragonz%20(dilong).png)
+
+To the untrained eye, this dragon may be confused for the similar East Asian *W. orientalia* subspecies, such as the Japanese Dragon (*Wyrmformes orientalia japonica*) or the Korean Dragon (*Wyrmformes orientalia koreana*). However, the Chinese Dragon (Wyrmformes orientalia) is actually a variant of the ancient *Wyrmformes*, and thus predates all other East Asian dragon species.
+
+This is largely because of their scales, which are heavily-thickened fish-like dermal scales as opposed to the expected reptilian epithelial scales. Most subtypes of Chinese dragons are either somewhat or fully aquatic, and thus have fish-like scales to aid in swimming against rough currents. However, their scales are much more fragile when compared to the standard reptilian scale, and so Chinese dragons are much less territorial than their other East Asian cousins and rely more on their environment and offensive nest-building practices to protect against potential predators or rivals.
+
+Shown above is the *Dilong* subtype: medium-sized (relative to other Chinese dragons) piscivores which nest in hills along rivers and streams. As such, this subtype are often shades of green or yellow, with semi-prehensile tails, webbed talons, and thick red fur that trail along their spine. Due to their diet, some covet the bile of the *Dilong* as a superior fish stock- but the act of collecting *Dilong* bile is both incredibly dangerous and essentially illegal in most Chinese provinces.
+
+#### [II] - Aitvaras (Lithuanian)
+
+![A white Longhorn rooster-like creature with a plume of fire-like feathers as a tail, sharp teeth and a forked tongue protruding from it's beak (Art: Me). ](Data/dragonz%20(aitvaras).png)
+
+The Aitvaras (*Voladraco avimimidae domesticus)* is a species of Cockatrice- half-reptilian creatures with the upper body of a rooster -hailing from Baltic region of Europe, specifically Lithuania and Latvia. Where most Cockatrice species are hatched looking like birds and then develop into their half-reptile forms, Aitvaras maintain their bird-like appearance due to their shared evolution and semi-domestication alongside humans. Traditional morphs of this strange little reptile are commonly black or white, with piebald and ruddy morphs considered rare.
+
+As descendants of ancient European dragons, the Aitvaras does in fact have a thermal stone and thus are capable to breathing fire. Because of their small bodies, instead of being located within their throats near the larynx, an Aitvaras' thermal stone is located within their "tail"- a small pouch contained within a large fan of heat-conducting feather-like structures. This pouch is connected to the trachea via a specialized windpipe, which is covered by an epiglottis. Rather than a large plume of fire, the Aitvaras can only "spit" a thin flame.
+
+#### [III] - Tatzelwurm (Swiss)
+
+![IMG: An elongated mainly pink with blue-spotted creature with yellow-and-orange eyes, a scaly body, a salmon-coloured underbelly, a long hairy tail and talons, with the face of cat and the ears of a hare.](Data/dragonz%20(tatzelwurm).png)
+
+Although technically considered drakes, the Tatzelwurm's (*Terradraco* alpinum) classification as a dragon has been under debate since it's official academic discovery in the 1660s. In fact, almost every part of this strange creature has left the entire biological community stumped for the better part of 400 years. It is currently theorized that the Tatzelwurm's ancestor became separated from a common species of European drake sometime during the Pleistocene around what today is Switzerland and Liechtenstein.
+
+Much of this creature's lifecycle is unknown, as the Tatzelwurm is an incredibly shy creature that is rare to find in the wild due to the mass urbanization that overtook Europe post-industrial revolution. Anecdotal evidence suggests the Tatzelwurm behaves similar to large omnivorous species, such as bears or cougars, but the accounts are too old to properly verify. From what little evidence we have of these creatures, we know that they are possess both hair and scales, and exhibit sexual-selection based morph colors- with males being much more colorful than females.
+
+Shown above is "Artie", an artist's recreation of a male Tatzelwurm that became habituated to humans living in the Swiss village of Sargans within the Sarganserland constituency.
